@@ -32,3 +32,22 @@ jobs:
       - run: composer install --no-interaction
       - run: composer test
       - run: for f in php/src/*.php php/examples/*.php; do php -l "$f"; done
+
+  js:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ["20", "22", "24"]
+    defaults:
+      run:
+        working-directory: js
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - name: types match openapi.json
+        run: npm run gen && git diff --exit-code src/schema.d.ts
+      - run: npm test
+      - run: npm pack --dry-run
