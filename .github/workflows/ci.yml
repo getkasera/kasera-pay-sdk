@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 1 * * *" # daily spec-drift check
+
+jobs:
+  spec:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: openapi.json matches the live spec
+        run: |
+          curl -sf https://pay.kasera.id/v1/openapi.json | python3 -m json.tool --indent 2 > /tmp/live.json
+          diff -u openapi.json /tmp/live.json || { echo "::error::openapi.json drifted from the live /v1 spec: refresh it and check every SDK"; exit 1; }
+
+  php:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ["8.1", "8.3"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          ini-values: zend.assertions=-1
+      - run: composer validate --strict
+      - run: composer install --no-interaction
+      - run: composer test
+      - run: for f in php/src/*.php php/examples/*.php; do php -l "$f"; done
