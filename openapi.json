@@ -75,6 +75,24 @@
       }
     },
     "schemas": {
+      "Address": {
+        "description": "The buyer's address. Only the PayLater lenders `kredivo` and `indodana` require it; all three parts or it counts as absent.\n",
+        "properties": {
+          "city": {
+            "maxLength": 100,
+            "type": "string"
+          },
+          "line": {
+            "maxLength": 200,
+            "type": "string"
+          },
+          "postal_code": {
+            "maxLength": 10,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "CreateRefundRequest": {
         "properties": {
           "amount": {
@@ -134,7 +152,7 @@
           "customer": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/Person"
+                "$ref": "#/components/schemas/Customer"
               }
             ],
             "description": "Who is paying \u2014 what payment rails are fulfilled with (not `payer`, which is display data). Methods may require `customer.name` etc.; read `required_customer_fields` on GET /v1/payment_methods.\n"
@@ -188,6 +206,21 @@
           "amount"
         ],
         "type": "object"
+      },
+      "Customer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Person"
+          },
+          {
+            "properties": {
+              "address": {
+                "$ref": "#/components/schemas/Address"
+              }
+            },
+            "type": "object"
+          }
+        ]
       },
       "ErrorResponse": {
         "properties": {
@@ -735,7 +768,7 @@
             "type": "string"
           },
           "customer": {
-            "$ref": "#/components/schemas/Person"
+            "$ref": "#/components/schemas/Customer"
           },
           "description": {
             "type": "string"

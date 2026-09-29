@@ -386,6 +386,12 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description The buyer's address. Only the PayLater lenders `kredivo` and `indodana` require it; all three parts or it counts as absent. */
+        Address: {
+            city?: string;
+            line?: string;
+            postal_code?: string;
+        };
         CreateRefundRequest: {
             /**
              * Format: int64
@@ -410,7 +416,7 @@ export interface components {
                 steps?: string[];
             };
             /** @description Who is paying — what payment rails are fulfilled with (not `payer`, which is display data). Methods may require `customer.name` etc.; read `required_customer_fields` on GET /v1/payment_methods. */
-            customer?: components["schemas"]["Person"];
+            customer?: components["schemas"]["Customer"];
             description?: string;
             expires_in_minutes?: number;
             /** @description Your order id. A label — stored, echoed, filterable, never deduplicating. */
@@ -424,6 +430,9 @@ export interface components {
             payment_methods?: string[];
             /** @description Where the hosted checkout sends the buyer afterwards. https only on live creates; a test key also accepts http, so a store on localhost can develop the full redirect flow. */
             return_url?: string;
+        };
+        Customer: components["schemas"]["Person"] & {
+            address?: components["schemas"]["Address"];
         };
         ErrorResponse: {
             error: {
@@ -671,7 +680,7 @@ export interface components {
             created_at: string;
             /** @example IDR */
             currency: string;
-            customer?: components["schemas"]["Person"];
+            customer?: components["schemas"]["Customer"];
             description: string;
             /** @description ISO-8601 at +07:00. */
             expires_at: string;
