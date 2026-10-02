@@ -11,7 +11,7 @@ export type CreateRefundRequest = Schemas["CreateRefundRequest"];
 export type WebhookEvent = Schemas["WebhookEvent"] | Schemas["WebhookTestPing"];
 export type { components, operations };
 
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.1";
 
 export interface ClientOptions {
   /** Defaults to https://pay.kasera.id */
@@ -53,7 +53,11 @@ export class KaseraPay {
   /** @param apiKey kp_live_... or kp_test_... from the dashboard's Developer page */
   constructor(private readonly apiKey: string, options: ClientOptions = {}) {
     this.baseUrl = (options.baseUrl ?? "https://pay.kasera.id").replace(/\/+$/, "");
-    this.fetch = options.fetch ?? globalThis.fetch;
+    // Wrapped, not stored bare: called as this.fetch(...), the platform fetch
+    // would get the client as its receiver, which Cloudflare Workers and
+    // browsers reject with "Illegal invocation".
+    const f = options.fetch ?? globalThis.fetch;
+    this.fetch = (input, init) => f(input, init);
   }
 
   createTransaction(params: CreateTransactionRequest, options: WriteOptions = {}): Promise<Transaction> {
