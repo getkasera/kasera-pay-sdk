@@ -96,3 +96,26 @@ test("errors", async () => {
   const down = new KaseraPay("k", { fetch: async () => { throw new TypeError("fetch failed"); } });
   await assert.rejects(down.listPaymentMethods(), { status: 0, code: "network_error", message: "fetch failed" });
 });
+
+// Cloudflare Workers and browsers throw "Illegal invocation" when fetch is
+// called with a receiver other than the global; Node does not, so the stub
+// enforces it.
+test("fetch is never called with the client as its receiver", async () => {
+  const calls = [];
+  async function strictFetch(url, init) {
+    if (this !== undefined && this !== globalThis) throw new TypeError("Illegal invocation");
+    calls.push(url);
+    return new Response('{"data":[]}', { status: 200 });
+  }
+
+  await new KaseraPay("k", { baseUrl: "https://pay.example", fetch: strictFetch }).listPaymentMethods();
+
+  const original = globalThis.fetch;
+  globalThis.fetch = strictFetch;
+  try {
+    await new KaseraPay("k", { baseUrl: "https://pay.example" }).listPaymentMethods();
+  } finally {
+    globalThis.fetch = original;
+  }
+  assert.deepEqual(calls, ["https://pay.example/v1/payment_methods", "https://pay.example/v1/payment_methods"]);
+});
