@@ -41,7 +41,7 @@
             }
           }
         },
-        "description": "`rate_limited` \u2014 over 300 requests/minute on this key."
+        "description": "`rate_limited` \u2014 over 300 requests/minute on this key, or a second read of one transaction within a second."
       },
       "SubscriptionConflict": {
         "content": {
@@ -200,6 +200,10 @@
             "description": "Where the hosted checkout sends the buyer afterwards. https only on live creates; a test key also accepts http, so a store on localhost can develop the full redirect flow.\n",
             "maxLength": 2048,
             "type": "string"
+          },
+          "send_receipt": {
+            "description": "Whether Kasera Pay emails the buyer a receipt when this payment succeeds. `true` sends it and `false` does not, whatever the account setting says. Omitted leaves it to the account's receipt setting, which is off by default. A receipt is only ever sent for a live payment that carries a buyer email.\n",
+            "type": "boolean"
           }
         },
         "required": [
@@ -826,6 +830,10 @@
           "return_url": {
             "type": "string"
           },
+          "send_receipt": {
+            "description": "The create's own receipt choice. Absent when the create left it to the account's receipt setting.\n",
+            "type": "boolean"
+          },
           "source": {
             "description": "Which channel created this request. Always `api` here; history read back may also say `merchant`, `payment_page` or `unknown`.\n",
             "type": "string"
@@ -990,7 +998,7 @@
     }
   },
   "info": {
-    "description": "The public developer API. Create payment requests, read them back, list\nthe payment methods your account may offer, and refund card payments.\n\nAll amounts are whole rupiah (no decimals): `amount = fee + net`, always.\nTimestamps are ISO-8601 with a `+07:00` offset. Ids are self-describing:\n`payreq_<uuid>` for transactions, `rfd_<uuid>` for refunds.\n\n## Authentication\n\nEvery endpoint (except this document) requires a bearer API key in the\n`Authorization` header: `Authorization: Bearer kp_live_...` or\n`Bearer kp_test_...`. A test key sees and creates only test objects, a\nlive key only live ones \u2014 the other mode's objects answer 404. Requests\nare limited to 300 per minute per key; failed authentication is throttled\nper IP.\n\n## Idempotency\n\n`POST /v1/transactions` and `POST /v1/refunds` accept an optional\n`Idempotency-Key` header \u2014 the ONLY thing that deduplicates a create.\nReplaying a key with the identical body returns the original object with\nstatus 200 (not 201); replaying it with a different body is refused\n409 `idempotency_conflict`. `merchant_ref` and `external_id` are labels:\nstored, echoed, filterable, never deduplicating.\n\n## Pagination\n\nLists return `{data, has_more}` pages ordered newest first. Pass\n`starting_after` with the last `id` you saw to fetch the next page;\n`limit` is 1\u2013100, default 20.\n\n## Webhooks\n\nKasera Pay POSTs a `payment.paid` event to your configured endpoint when\na payment settles, carrying `Kasera-Event-Id` for deduplication and two\nsignature headers:\n\n- `Kasera-Signature-V1` \u2014 verify this one. Format `t=<unix>,v1=<hex>`,\n  where each `v1` is lowercase hex HMAC-SHA256 over `<unix>.<raw body>`\n  keyed with your endpoint's signing secret. Reject deliveries whose `t`\n  is older than five minutes. During the 24 hours after a secret\n  rotation the header carries two `v1` entries, one per secret; accept\n  the delivery if any entry matches.\n- `Kasera-Signature` \u2014 deprecated. Lowercase hex HMAC-SHA256 of the raw\n  body alone, with no timestamp, so a captured delivery replays forever.\n  Still sent for existing verifiers; it will be removed after a\n  deprecation period announced on the webhook docs page. New\n  integrations must not rely on it.\n\nDelivery is at-least-once with backoff over ~34 hours. The payload\nshapes are `WebhookEvent` and `WebhookTestPing` under components/schemas.\n",
+    "description": "The public developer API. Create payment requests, read them back, list\nthe payment methods your account may offer, and refund card payments.\n\nAll amounts are whole rupiah (no decimals): `amount = fee + net`, always.\nTimestamps are ISO-8601 with a `+07:00` offset. Ids are self-describing:\n`payreq_<uuid>` for transactions, `rfd_<uuid>` for refunds.\n\n## Authentication\n\nEvery endpoint (except this document) requires a bearer API key in the\n`Authorization` header: `Authorization: Bearer kp_live_...` or\n`Bearer kp_test_...`. A test key sees and creates only test objects, a\nlive key only live ones \u2014 the other mode's objects answer 404. Requests\nare limited to 300 per minute per key; failed authentication is throttled\nper IP. `GET /v1/transactions/{id}` is also paced at one read per second\nper transaction (per key): its answers carry `RateLimit-Limit`,\n`RateLimit-Remaining` and `RateLimit-Reset`, and a refusal adds\n`Retry-After`. Listen for the `payment.paid` webhook for status changes\ninstead of polling.\n\n## Idempotency\n\n`POST /v1/transactions` and `POST /v1/refunds` accept an optional\n`Idempotency-Key` header \u2014 the ONLY thing that deduplicates a create.\nReplaying a key with the identical body returns the original object with\nstatus 200 (not 201); replaying it with a different body is refused\n409 `idempotency_conflict`. `merchant_ref` and `external_id` are labels:\nstored, echoed, filterable, never deduplicating.\n\n## Pagination\n\nLists return `{data, has_more}` pages ordered newest first. Pass\n`starting_after` with the last `id` you saw to fetch the next page;\n`limit` is 1\u2013100, default 20.\n\n## Webhooks\n\nKasera Pay POSTs a `payment.paid` event to your configured endpoint when\na payment settles, carrying `Kasera-Event-Id` for deduplication and two\nsignature headers:\n\n- `Kasera-Signature-V1` \u2014 verify this one. Format `t=<unix>,v1=<hex>`,\n  where each `v1` is lowercase hex HMAC-SHA256 over `<unix>.<raw body>`\n  keyed with your endpoint's signing secret. Reject deliveries whose `t`\n  is older than five minutes. During the 24 hours after a secret\n  rotation the header carries two `v1` entries, one per secret; accept\n  the delivery if any entry matches.\n- `Kasera-Signature` \u2014 deprecated. Lowercase hex HMAC-SHA256 of the raw\n  body alone, with no timestamp, so a captured delivery replays forever.\n  Still sent for existing verifiers; it will be removed after a\n  deprecation period announced on the webhook docs page. New\n  integrations must not rely on it.\n\nDelivery is at-least-once with backoff over ~34 hours. The payload\nshapes are `WebhookEvent` and `WebhookTestPing` under components/schemas.\n",
     "title": "Kasera Pay API",
     "version": "1.0"
   },
@@ -2303,6 +2311,7 @@
     },
     "/v1/transactions/{id}": {
       "get": {
+        "description": "At most one read per second per transaction on one key; a second read inside that second is 429 `rate_limited` with `Retry-After`. A finished request (succeeded, failed, canceled, expired) is served from cache. Status changes arrive on the `payment.paid` webhook \u2014 poll only when you need certainty.",
         "operationId": "getTransaction",
         "parameters": [
           {

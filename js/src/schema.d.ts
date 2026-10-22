@@ -372,7 +372,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Retrieve a payment request */
+        /**
+         * Retrieve a payment request
+         * @description At most one read per second per transaction on one key; a second read inside that second is 429 `rate_limited` with `Retry-After`. A finished request (succeeded, failed, canceled, expired) is served from cache. Status changes arrive on the `payment.paid` webhook — poll only when you need certainty.
+         */
         get: operations["getTransaction"];
         put?: never;
         post?: never;
@@ -430,6 +433,8 @@ export interface components {
             payment_methods?: string[];
             /** @description Where the hosted checkout sends the buyer afterwards. https only on live creates; a test key also accepts http, so a store on localhost can develop the full redirect flow. */
             return_url?: string;
+            /** @description Whether Kasera Pay emails the buyer a receipt when this payment succeeds. `true` sends it and `false` does not, whatever the account setting says. Omitted leaves it to the account's receipt setting, which is off by default. A receipt is only ever sent for a live payment that carries a buyer email. */
+            send_receipt?: boolean;
         };
         Customer: components["schemas"]["Person"] & {
             address?: components["schemas"]["Address"];
@@ -703,6 +708,8 @@ export interface components {
             /** @description Lowercase code of the method this payment was created for — read off the row, not today's catalogue. */
             payment_method: string;
             return_url?: string;
+            /** @description The create's own receipt choice. Absent when the create left it to the account's receipt setting. */
+            send_receipt?: boolean;
             /** @description Which channel created this request. Always `api` here; history read back may also say `merchant`, `payment_page` or `unknown`. */
             source: string;
             /** @enum {string} */
@@ -768,7 +775,7 @@ export interface components {
                 "application/json": components["schemas"]["ErrorResponse"];
             };
         };
-        /** @description `rate_limited` — over 300 requests/minute on this key. */
+        /** @description `rate_limited` — over 300 requests/minute on this key, or a second read of one transaction within a second. */
         RateLimited: {
             headers: {
                 [name: string]: unknown;
