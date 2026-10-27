@@ -1,17 +1,35 @@
 {
   "name": "kasera-pay",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Official JavaScript/TypeScript SDK for Kasera Pay: accept QRIS and Virtual Account payments in Indonesia.",
-  "keywords": ["kasera", "payment", "payment-gateway", "qris", "virtual-account", "indonesia"],
+  "keywords": [
+    "kasera",
+    "payment",
+    "payment-gateway",
+    "qris",
+    "virtual-account",
+    "indonesia"
+  ],
   "homepage": "https://pay.kasera.id",
-  "repository": { "type": "git", "url": "git+https://github.com/getkasera/kasera-pay-sdk.git", "directory": "js" },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getkasera/kasera-pay-sdk.git",
+    "directory": "js"
+  },
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
   },
-  "files": ["dist"],
-  "engines": { "node": ">=20.19" },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20.19"
+  },
   "scripts": {
     "gen": "openapi-typescript ../openapi.json -o src/schema.d.ts",
     "build": "tsc && cp src/schema.d.ts dist/",
