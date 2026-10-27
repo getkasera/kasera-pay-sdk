@@ -420,6 +420,13 @@ export interface components {
             };
             /** @description Who is paying — what payment rails are fulfilled with (not `payer`, which is display data). Methods may require `customer.name` etc.; read `required_customer_fields` on GET /v1/payment_methods. */
             customer?: components["schemas"]["Customer"];
+            /**
+             * Format: date
+             * @description The promised delivery day, YYYY-MM-DD in WIB, today or later. Required above Rp1.000.000 (with a description of at least 10 characters, customer.name, and customer.phone or customer.email), even on a Checkout create. Links to the same buyer contact within 30 minutes are summed.
+             */
+            delivery_date?: string;
+            /** @description Your attestation that your checkout showed the buyer delivery_date before they paid. Must be true above Rp1.000.000. */
+            delivery_terms_shown?: boolean;
             description?: string;
             expires_in_minutes?: number;
             /** @description Your order id. A label — stored, echoed, filterable, never deduplicating. */
@@ -1617,7 +1624,7 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
-            /** @description `validation_failed`, `invalid_body`, `order_items_mismatch`, `payment_method_unavailable`, `customer_required`, `amount_too_small`, `amount_too_large`, `expiry_too_long` or `expiry_too_short` — `error.fields` names the offending fields as dotted JSON paths. */
+            /** @description `validation_failed`, `invalid_body`, `order_items_mismatch`, `payment_method_unavailable`, `customer_required`, `amount_too_small`, `amount_too_large`, `expiry_too_long` or `expiry_too_short` — `error.fields` names the offending fields as dotted JSON paths. Above Rp1.000.000 also `description_required`, `delivery_date_required`, `delivery_date_invalid`, `buyer_contact_required`, `buyer_name_required` or `delivery_terms_not_shown`. */
             422: {
                 headers: {
                     [name: string]: unknown;
