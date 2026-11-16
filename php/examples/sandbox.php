@@ -21,7 +21,7 @@ try {
     // The order id doubles as the idempotency key: retrying this exact call
     // returns the same payment request instead of creating a second one.
     $tx = $client->createTransaction([
-        'amount' => 25000,
+        'order_items' => [['name' => 'SDK sandbox demo', 'price' => 25000, 'quantity' => 1]],
         'description' => 'SDK sandbox demo',
         'external_id' => $orderId,
         'checkout' => new stdClass(),

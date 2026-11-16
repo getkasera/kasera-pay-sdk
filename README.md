@@ -24,13 +24,17 @@ use Kasera\Pay\Client;
 $kasera = new Client(getenv('KASERA_API_KEY')); // kp_test_... or kp_live_...
 
 $tx = $kasera->createTransaction([
-    'amount'      => 25000,          // whole rupiah
+    // What was sold; the amount is their total (whole rupiah). You may also
+    // send 'amount', and it must then equal the lines' total.
+    'order_items' => [['name' => 'Kaos polos', 'price' => 25000, 'quantity' => 1]],
     'external_id' => 'order-1001',
     'checkout'    => new stdClass(), // use the hosted Kasera Pay Checkout page
 ], 'order-1001');                    // Idempotency-Key: a retry returns the same payment
 
 header('Location: ' . $tx['checkout_url']);
 ```
+
+`amount` alone still works; the response then carries a `warnings` entry (`order_items_missing`).
 
 Always pass an idempotency key (your order id is fine). It is the only thing that stops a retried request, like a double click or a timeout, from creating a second payment.
 
@@ -105,7 +109,11 @@ import { KaseraPay, KaseraPayError } from "kasera-pay";
 const kasera = new KaseraPay(process.env.KASERA_API_KEY!); // kp_test_... or kp_live_...
 
 const tx = await kasera.createTransaction(
-  { amount: 25000, external_id: "order-1001", checkout: {} },
+  {
+    order_items: [{ name: "Kaos polos", price: 25000, quantity: 1 }], // amount = their total
+    external_id: "order-1001",
+    checkout: {},
+  },
   { idempotencyKey: "order-1001" }, // a retry returns the same payment
 );
 // redirect the buyer to tx.checkout_url

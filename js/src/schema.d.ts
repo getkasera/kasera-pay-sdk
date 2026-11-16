@@ -405,12 +405,25 @@ export interface components {
             /** @description `payreq_<uuid>` of a succeeded card payment. */
             transaction_id: string;
         };
+        /**
+         * @description Send `amount`, `order_items`, or both. With `order_items` alone the amount is their total. `amount` alone still works, and gets an `order_items_missing` warning back.
+         * @example {
+         *       "description": "Pesanan #1024",
+         *       "order_items": [
+         *         {
+         *           "name": "Kaos polos",
+         *           "price": 75000,
+         *           "quantity": 2
+         *         }
+         *       ]
+         *     }
+         */
         CreateTransactionRequest: {
             /**
              * Format: int64
-             * @description Whole rupiah. Authoritative even when order_items is sent.
+             * @description Whole rupiah. Optional when `order_items` is sent: it is then their total. Sent with `order_items`, it must equal Σ price×quantity.
              */
-            amount: number;
+            amount?: number;
             /** @description Everything that shapes the Kasera Pay Checkout page. Sending it, even as `{}`, is what makes this a Checkout create: the buyer walks `checkout_url` and the page collects whatever a chosen method still needs. Omitting it makes the create Direct API: `checkout_url` is still returned, but no page is assumed, so a method that needs a buyer field you did not send is refused 422 `customer_required`, and the three `is_*_required` asks are inherited from the account's payment-method settings. Sending the object replaces all three at once, so an object carrying only `steps` turns those account defaults off for this payment. */
             checkout?: {
                 is_email_required?: boolean;
@@ -433,7 +446,7 @@ export interface components {
             external_id?: string;
             /** @description Your own reference. A label, like external_id. */
             merchant_ref?: string;
-            /** @description Display-only detail. Σ price×quantity must equal amount or the create is refused 422 `order_items_mismatch`. */
+            /** @description What was sold. Σ price×quantity is the amount when `amount` is left out; when both are sent they must match, or the create is refused 422 `order_items_mismatch`. */
             order_items?: components["schemas"]["OrderItem"][];
             payer?: components["schemas"]["Person"];
             /** @description Method codes this payment may be paid with, in the order a buyer should be offered them. Omitted or empty means every method enabled on the account. An unknown or disabled code is refused 422 `payment_method_unavailable`, never dropped. */
@@ -470,6 +483,8 @@ export interface components {
             /** Format: int64 */
             price: number;
             quantity: number;
+            /** @description Your own product code. Optional; omitted in responses when empty. */
+            sku?: string;
         };
         PaymentMethod: {
             /** @example qris */
@@ -721,6 +736,11 @@ export interface components {
             source: string;
             /** @enum {string} */
             status: "pending" | "succeeded" | "failed" | "expired" | "canceled";
+            /** @description Advice about a create that went through anyway; on the create response only, absent when empty. Today the one code is `order_items_missing`. */
+            warnings?: {
+                code: string;
+                message: string;
+            }[];
         };
         TransactionList: {
             data: components["schemas"]["Transaction"][];
