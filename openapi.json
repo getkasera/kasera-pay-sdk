@@ -118,9 +118,20 @@
         "type": "object"
       },
       "CreateTransactionRequest": {
+        "description": "Send `amount`, `order_items`, or both. With `order_items` alone the amount is their total. `amount` alone still works, and gets an `order_items_missing` warning back.\n",
+        "example": {
+          "description": "Pesanan #1024",
+          "order_items": [
+            {
+              "name": "Kaos polos",
+              "price": 75000,
+              "quantity": 2
+            }
+          ]
+        },
         "properties": {
           "amount": {
-            "description": "Whole rupiah. Authoritative even when order_items is sent.",
+            "description": "Whole rupiah. Optional when `order_items` is sent: it is then their total. Sent with `order_items`, it must equal \u03a3 price\u00d7quantity.\n",
             "format": "int64",
             "maximum": 1000000000,
             "minimum": 1,
@@ -186,7 +197,7 @@
             "type": "string"
           },
           "order_items": {
-            "description": "Display-only detail. \u03a3 price\u00d7quantity must equal amount or the create is refused 422 `order_items_mismatch`.\n",
+            "description": "What was sold. \u03a3 price\u00d7quantity is the amount when `amount` is left out; when both are sent they must match, or the create is refused 422 `order_items_mismatch`.\n",
             "items": {
               "$ref": "#/components/schemas/OrderItem"
             },
@@ -215,9 +226,6 @@
             "type": "boolean"
           }
         },
-        "required": [
-          "amount"
-        ],
         "type": "object"
       },
       "Customer": {
@@ -304,6 +312,11 @@
           "quantity": {
             "minimum": 1,
             "type": "integer"
+          },
+          "sku": {
+            "description": "Your own product code. Optional; omitted in responses when empty.",
+            "maxLength": 64,
+            "type": "string"
           }
         },
         "required": [
@@ -856,6 +869,25 @@
               "canceled"
             ],
             "type": "string"
+          },
+          "warnings": {
+            "description": "Advice about a create that went through anyway; on the create response only, absent when empty. Today the one code is `order_items_missing`.\n",
+            "items": {
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "type": "array"
           }
         },
         "required": [

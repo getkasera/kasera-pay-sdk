@@ -14,7 +14,11 @@ import { KaseraPay, KaseraPayError } from "kasera-pay";
 const kasera = new KaseraPay(process.env.KASERA_API_KEY!); // kp_test_... or kp_live_...
 
 const tx = await kasera.createTransaction(
-  { amount: 25000, external_id: "order-1001", checkout: {} },
+  {
+    order_items: [{ name: "Kaos polos", price: 25000, quantity: 1 }], // amount = their total
+    external_id: "order-1001",
+    checkout: {},
+  },
   { idempotencyKey: "order-1001" }, // a retry returns the same payment
 );
 // redirect the buyer to tx.checkout_url
